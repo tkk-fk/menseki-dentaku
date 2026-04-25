@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1e2830">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<title>面積電卓</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --bg: #d4dce0;
+  --calc-bg: #1e2830;
+  --display-bg: #0f1820;
+  --display-text: #f0f4f0;
+  --display-sub: #8e94a8;
+
+  --btn-num-bg: #3a4555;
+  --btn-num-text: #f0f0f0;
+  --btn-num-border: #4e5a70;
+
+  --btn-op-bg: #d47a1a;
+  --btn-op-text: #fff;
+  --btn-op-border: #e89530;
+
+  --btn-unit-bg: #1a6a8a;
+  --btn-unit-text: #fff;
+  --btn-unit-border: #2490b0;
+
+  --btn-func-bg: #505670;
+  --btn-func-text: #f0f0f0;
+  --btn-func-border: #6a7090;
+
+  --btn-equal-bg: #1a6ab5;
+  --btn-equal-text: #fff;
+  --btn-equal-border: #2a88d6;
+
+  --btn-conv-bg: #7b52a0;
+  --btn-conv-text: #fff;
+  --btn-conv-border: #9b6ec0;
+
+  --btn-active: rgba(255,255,255,0.18);
+  --shadow: 0 6px 24px rgba(0,0,0,0.35);
+  --focus: #ffd060;
+
+  /* base = 一般的なスマホ縦 */
+  --btn-h: 52px;
+  --btn-gap: 6px;
+  --btn-radius: 12px;
+  --btn-font: 20px;
+  --unit-font: 15px;
+  --display-font: 30px;
+  --expr-font: 14px;
+  --calc-pad: 12px;
+  --calc-w: 95vw;
+  --calc-max-w: 400px;
+  --calc-radius: 20px;
+}
+
+/* iPhone SE 1st gen など極小幅 */
+@media (max-width: 360px) {
+  :root {
+    --btn-h: 44px;
+    --btn-gap: 5px;
+    --btn-radius: 10px;
+    --btn-font: 18px;
+    --unit-font: 13px;
+    --display-font: 26px;
+    --expr-font: 12px;
+    --calc-pad: 10px;
+    --calc-radius: 16px;
+  }
+}
+
+/* タブレット縦・大きめスマホ横 */
+@media (min-width: 600px) {
+  :root {
+    --btn-h: 62px;
+    --btn-gap: 8px;
+    --btn-radius: 14px;
+    --btn-font: 24px;
+    --unit-font: 18px;
+    --display-font: 38px;
+    --expr-font: 16px;
+    --calc-pad: 18px;
+    --calc-w: 90vw;
+    --calc-max-w: 460px;
+    --calc-radius: 26px;
+  }
+}
+
+/* PC・タブレット横 */
+@media (min-width: 900px) {
+  :root {
+    --btn-h: 66px;
+    --btn-gap: 9px;
+    --btn-radius: 16px;
+    --btn-font: 26px;
+    --unit-font: 19px;
+    --display-font: 42px;
+    --expr-font: 17px;
+    --calc-pad: 22px;
+    --calc-w: 500px;
+    --calc-max-w: 500px;
+    --calc-radius: 28px;
+  }
+}
+
+/* 大型ディスプレイ（プロジェクター・大型モニター） */
+@media (min-width: 1400px) {
+  :root {
+    --btn-h: 72px;
+    --btn-font: 28px;
+    --unit-font: 20px;
+    --display-font: 46px;
+    --calc-w: 540px;
+    --calc-max-w: 540px;
+  }
+}
+
+/* スマホ横向き＝高さが低い時はコンパクトに */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --btn-h: 38px;
+    --btn-gap: 4px;
+    --btn-radius: 10px;
+    --btn-font: 17px;
+    --unit-font: 13px;
+    --display-font: 22px;
+    --expr-font: 11px;
+    --calc-pad: 8px;
+    --calc-w: 86vw;
+    --calc-max-w: 540px;
+    --calc-radius: 16px;
+  }
+}
+
+/* もっと低い高さ（iPhone SE横向きなど） */
+@media (orientation: landscape) and (max-height: 400px) {
+  :root {
+    --btn-h: 32px;
+    --btn-gap: 3px;
+    --btn-radius: 8px;
+    --btn-font: 15px;
+    --unit-font: 11px;
+    --display-font: 18px;
+    --expr-font: 10px;
+    --calc-pad: 6px;
+  }
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* iOS Safari ピンチ拡大時の見た目崩れ防止 */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+.calculator {
+  background: var(--calc-bg);
+  border-radius: var(--calc-radius);
+  padding: var(--calc-pad);
+  box-shadow: var(--shadow);
+  width: var(--calc-w);
+  max-width: var(--calc-max-w);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--btn-gap);
+  min-height: 0;
+}
+
+.title {
+  text-align: center;
+  color: #9cb0b0;
+  font-size: calc(var(--unit-font) - 2px);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  padding: 2px 0;
+  flex-shrink: 0;
+}
+
+@media (orientation: landscape) and (max-height: 400px) {
+  .title { display: none; }
+}
+
+.display {
+  background: var(--display-bg);
+  border-radius: var(--btn-radius);
+  padding: calc(var(--calc-pad) + 2px) calc(var(--calc-pad) + 4px);
+  min-height: calc(var(--display-font) * 3);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  overflow: hidden;
+  border: 2px solid #2a3545;
+  flex-shrink: 0;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .display { min-height: calc(var(--display-font) * 2.4); }
+}
+
+.expression {
+  color: var(--display-sub);
+  font-size: var(--expr-font);
+  text-align: right;
+  min-height: 1.4em;
+  word-break: break-all;
+  line-height: 1.5;
+  overflow-y: auto;
+  max-height: 4em;
+  -webkit-overflow-scrolling: touch;
+}
+
+.current-value {
+  color: var(--display-text);
+  font-size: var(--display-font);
+  font-weight: 900;
+  text-align: right;
+  min-height: 1.2em;
+  line-height: 1.25;
+  word-break: break-all;
+  /* 文字数が増えても自動で縮小 */
+  font-variant-numeric: tabular-nums;
+}
+
+.current-value.result { color: #7dd6f5; }
+.current-value.error { color: #f5a060; font-size: calc(var(--display-font) * 0.6); }
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--btn-gap);
+  flex: 0 0 auto;
+}
+
+.btn-row {
+  display: flex;
+  gap: var(--btn-gap);
+}
+
+.btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--btn-h);
+  border: none;
+  border-radius: var(--btn-radius);
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: var(--btn-font);
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, box-shadow 0.12s ease, filter 0.12s ease;
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  border-bottom: 3px solid rgba(0,0,0,0.25);
+  /* PC でテキスト選択無効化 */
+  -webkit-user-select: none;
+  user-select: none;
+  /* iOSのフォーム要素デフォルト無効化 */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--btn-active);
+  opacity: 0;
+  transition: opacity 0.12s;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.btn:active {
+  transform: scale(0.94) translateY(1px);
+  border-bottom-width: 1px;
+}
+.btn:active::after { opacity: 1; }
+
+/* キーボード操作時のみフォーカスリングを表示 */
+.btn:focus { outline: none; }
+.btn:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+  z-index: 2;
+}
+
+.btn-num {
+  background: var(--btn-num-bg);
+  color: var(--btn-num-text);
+  border-bottom-color: var(--btn-num-border);
+}
+
+.btn-op {
+  background: var(--btn-op-bg);
+  color: var(--btn-op-text);
+  border-bottom-color: var(--btn-op-border);
+  border-left: 3px solid var(--btn-op-border);
+}
+
+.btn-unit {
+  background: var(--btn-unit-bg);
+  color: var(--btn-unit-text);
+  border-bottom-color: var(--btn-unit-border);
+  font-size: var(--unit-font);
+  border-top: 3px solid var(--btn-unit-border);
+}
+
+.btn-func {
+  background: var(--btn-func-bg);
+  color: var(--btn-func-text);
+  border-bottom-color: var(--btn-func-border);
+  font-size: var(--unit-font);
+}
+
+.btn-equal {
+  background: var(--btn-equal-bg);
+  color: var(--btn-equal-text);
+  border-bottom-color: var(--btn-equal-border);
+  font-size: calc(var(--btn-font) + 4px);
+  border-radius: calc(var(--btn-radius) + 6px);
+}
+
+.btn-conv {
+  background: var(--btn-conv-bg);
+  color: var(--btn-conv-text);
+  border-bottom-color: var(--btn-conv-border);
+  font-size: calc(var(--unit-font) - 2px);
+  border: 2px solid var(--btn-conv-border);
+  border-bottom-width: 3px;
+}
+
+.btn-op.active {
+  box-shadow: 0 0 0 3px #fff inset, 0 0 12px rgba(212,122,26,0.4);
+}
+
+.conv-label {
+  text-align: center;
+  color: #6a7080;
+  font-size: calc(var(--unit-font) - 4px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 2px 0 0;
+  flex-shrink: 0;
+}
+
+@media (orientation: landscape) and (max-height: 400px) {
+  .conv-label { display: none; }
+}
+
+/* マウス端末のみホバーエフェクト（タッチ端末で誤発火させない） */
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover {
+    filter: brightness(1.12);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+}
+
+/* 動きの軽減を求めるユーザーへの配慮 */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .btn::after {
+    transition: none;
+  }
+  .btn:active {
+    transform: none;
+  }
+}
+
+/* Windowsハイコントラストモード */
+@media (forced-colors: active) {
+  .btn { border: 2px solid ButtonText; }
+  .btn-op { border-width: 3px; }
+  .display { border: 2px solid CanvasText; }
+  .btn:focus-visible { outline-color: Highlight; }
+}
+
+/* プリント対応（念のため） */
+@media print {
+  body { background: #fff; }
+  .calculator { box-shadow: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="calculator" role="application" aria-label="面積電卓">
+  <div class="title">📐 面積電卓</div>
+
+  <div class="display" aria-live="polite">
+    <div class="expression" id="expression"></div>
+    <div class="current-value" id="currentValue">0</div>
+  </div>
+
+  <div class="buttons">
+    <div class="btn-row">
+      <button type="button" class="btn btn-func" data-action="clear" aria-label="クリア">C</button>
+      <button type="button" class="btn btn-func" data-action="backspace" aria-label="ひとつ消す">⌫</button>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-unit" data-unit="km2" aria-label="平方キロメートル">km²</button>
+      <button type="button" class="btn btn-unit" data-unit="ha" aria-label="ヘクタール">ha</button>
+      <button type="button" class="btn btn-unit" data-unit="a" aria-label="アール">a</button>
+      <button type="button" class="btn btn-unit" data-unit="m2" aria-label="平方メートル">m²</button>
+      <button type="button" class="btn btn-unit" data-unit="cm2" aria-label="平方センチメートル">cm²</button>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-num" data-digit="7">7</button>
+      <button type="button" class="btn btn-num" data-digit="8">8</button>
+      <button type="button" class="btn btn-num" data-digit="9">9</button>
+      <button type="button" class="btn btn-op" data-op="÷" aria-label="わる">÷</button>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-num" data-digit="4">4</button>
+      <button type="button" class="btn btn-num" data-digit="5">5</button>
+      <button type="button" class="btn btn-num" data-digit="6">6</button>
+      <button type="button" class="btn btn-op" data-op="×" aria-label="かける">×</button>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-num" data-digit="1">1</button>
+      <button type="button" class="btn btn-num" data-digit="2">2</button>
+      <button type="button" class="btn btn-num" data-digit="3">3</button>
+      <button type="button" class="btn btn-op" data-op="−" aria-label="ひく">−</button>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-num" data-digit="0">0</button>
+      <button type="button" class="btn btn-num" data-action="dot" aria-label="しょうすう点">.</button>
+      <button type="button" class="btn btn-equal" data-action="equals" aria-label="けいさんする">＝</button>
+      <button type="button" class="btn btn-op" data-op="＋" aria-label="たす">＋</button>
+    </div>
+    <div class="conv-label">▼ たんい換算 ▼</div>
+    <div class="btn-row">
+      <button type="button" class="btn btn-conv" data-conv="km2" aria-label="平方キロメートルに換算">→ km²</button>
+      <button type="button" class="btn btn-conv" data-conv="ha" aria-label="ヘクタールに換算">→ ha</button>
+      <button type="button" class="btn btn-conv" data-conv="a" aria-label="アールに換算">→ a</button>
+      <button type="button" class="btn btn-conv" data-conv="m2" aria-label="平方メートルに換算">→ m²</button>
+      <button type="button" class="btn btn-conv" data-conv="cm2" aria-label="平方センチメートルに換算">→ cm²</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  /* 内部計算はすべてcm²基準（整数演算で浮動小数点誤差を回避） */
+  /* 1km² = 10,000,000,000cm², 1ha = 100,000,000cm², 1a = 1,000,000cm², 1m² = 10,000cm² */
+
+  let inputDigits = '';
+  let currentTerm = { km2: 0, ha: 0, a: 0, m2: 0, cm2: 0 };
+  let hasUnit = false;
+  let terms = [];
+  let operators = [];
+  let pendingOp = null;
+  let showingResult = false;
+  let resultCM2 = null;
+  let resultHasUnit = false;
+
+  const elExpr = document.getElementById('expression');
+  const elVal = document.getElementById('currentValue');
+
+  function toCM2(t) {
+    return t.km2 * 10000000000 + t.ha * 100000000 + t.a * 1000000 + t.m2 * 10000 + t.cm2;
+  }
+
+  function fromCM2(cm2Val) {
+    const neg = cm2Val < 0;
+    cm2Val = Math.abs(cm2Val);
+    cm2Val = Math.round(cm2Val * 10000) / 10000;
+    const km2 = Math.floor(cm2Val / 10000000000);
+    cm2Val -= km2 * 10000000000;
+    const ha = Math.floor(cm2Val / 100000000);
+    cm2Val -= ha * 100000000;
+    const a = Math.floor(cm2Val / 1000000);
+    cm2Val -= a * 1000000;
+    const m2 = Math.floor(cm2Val / 10000);
+    const cm2 = Math.round((cm2Val - m2 * 10000) * 10000) / 10000;
+    return { km2, ha, a, m2, cm2, neg };
+  }
+
+  function fmtN(n) {
+    if (Number.isInteger(n)) return n.toString();
+    return n.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  function fmtTerm(t) {
+    const p = [];
+    if (t.km2 > 0) p.push(fmtN(t.km2) + 'km²');
+    if (t.ha > 0) p.push(fmtN(t.ha) + 'ha');
+    if (t.a > 0) p.push(fmtN(t.a) + 'a');
+    if (t.m2 > 0) p.push(fmtN(t.m2) + 'm²');
+    if (t.cm2 > 0) p.push(fmtN(t.cm2) + 'cm²');
+    if (!p.length) p.push('0cm²');
+    return (t.neg ? '−' : '') + p.join('');
+  }
+
+  function fmtTermExpr(t) {
+    if (!t.hasUnit) {
+      const v = t.km2*10000000000 + t.ha*100000000 + t.a*1000000 + t.m2*10000 + t.cm2;
+      return fmtN(v);
+    }
+    const p = [];
+    if (t.km2 > 0) p.push(fmtN(t.km2) + 'km²');
+    if (t.ha > 0) p.push(fmtN(t.ha) + 'ha');
+    if (t.a > 0) p.push(fmtN(t.a) + 'a');
+    if (t.m2 > 0) p.push(fmtN(t.m2) + 'm²');
+    if (t.cm2 > 0) p.push(fmtN(t.cm2) + 'cm²');
+    if (!p.length) p.push('0cm²');
+    return p.join('');
+  }
+
+  function curDisp() {
+    const p = [];
+    if (currentTerm.km2 > 0) p.push(fmtN(currentTerm.km2) + 'km²');
+    if (currentTerm.ha > 0) p.push(fmtN(currentTerm.ha) + 'ha');
+    if (currentTerm.a > 0) p.push(fmtN(currentTerm.a) + 'a');
+    if (currentTerm.m2 > 0) p.push(fmtN(currentTerm.m2) + 'm²');
+    if (currentTerm.cm2 > 0) p.push(fmtN(currentTerm.cm2) + 'cm²');
+    if (inputDigits) p.push(inputDigits);
+    return p.length ? p.join('') : '0';
+  }
+
+  function hasAnyValue() {
+    return currentTerm.km2 || currentTerm.ha || currentTerm.a || currentTerm.m2 || currentTerm.cm2;
+  }
+
+  function buildExpr() {
+    let s = '';
+    for (let i = 0; i < terms.length; i++) {
+      if (i > 0) s += ' ' + operators[i-1] + ' ';
+      s += fmtTermExpr(terms[i]);
+    }
+    return s;
+  }
+
+  function updateUI() {
+    let e = buildExpr();
+    if (pendingOp && !showingResult) e += ' ' + pendingOp;
+    elExpr.textContent = e;
+    if (!showingResult) { elVal.textContent = curDisp(); elVal.className = 'current-value'; }
+    document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('active'));
+    if (pendingOp) document.querySelectorAll('.btn-op').forEach(b => { if (b.dataset.op === pendingOp) b.classList.add('active'); });
+  }
+
+  function finalize() {
+    if (inputDigits) {
+      const n = parseFloat(inputDigits);
+      if (!hasUnit) currentTerm.cm2 = n; else currentTerm.cm2 += n;
+      inputDigits = '';
+    }
+    const t = { ...currentTerm, hasUnit };
+    currentTerm = { km2:0, ha:0, a:0, m2:0, cm2:0 }; hasUnit = false;
+    return t;
+  }
+
+  function calc() {
+    if (!terms.length) return null;
+    let r = toCM2(terms[0]);
+    let rHasUnit = terms[0].hasUnit;
+    for (let i = 0; i < operators.length; i++) {
+      const next = terms[i+1];
+      if (!next) break;
+      const nv = toCM2(next);
+      const rv = next.hasUnit ? nv : (next.km2*10000000000 + next.ha*100000000 + next.a*1000000 + next.m2*10000 + next.cm2);
+      switch (operators[i]) {
+        case '＋':
+          if (rHasUnit !== next.hasUnit) return {error:'たんいをそろえてね'};
+          r += nv; break;
+        case '−':
+          if (rHasUnit !== next.hasUnit) return {error:'たんいをそろえてね'};
+          r -= nv; break;
+        case '×':
+          if (rHasUnit && next.hasUnit) return {error:'面積×面積はできません'};
+          r *= rv;
+          if (next.hasUnit) rHasUnit = true;
+          break;
+        case '÷':
+          if (rv===0) return {error:'0でわれません'};
+          r /= rv;
+          if (rHasUnit && next.hasUnit) rHasUnit = false;
+          break;
+      }
+    }
+    return { cm2: r, hasUnit: rHasUnit };
+  }
+
+  function digit(d) {
+    if (showingResult) clearAll();
+    if (inputDigits==='0' && d==='0') return;
+    if (inputDigits==='0' && d!=='0') inputDigits='';
+    inputDigits += d; updateUI();
+  }
+
+  function dot() {
+    if (showingResult) clearAll();
+    if (inputDigits.includes('.')) return;
+    if (!inputDigits) inputDigits='0';
+    inputDigits += '.'; updateUI();
+  }
+
+  function unit(u) {
+    if (showingResult) clearAll();
+    const n = inputDigits ? parseFloat(inputDigits) : 0;
+    inputDigits = ''; hasUnit = true;
+    if (u==='km2') currentTerm.km2 += n;
+    else if (u==='ha') currentTerm.ha += n;
+    else if (u==='a') currentTerm.a += n;
+    else if (u==='m2') currentTerm.m2 += n;
+    else currentTerm.cm2 += n;
+    updateUI();
+  }
+
+  function op(o) {
+    if (showingResult) {
+      const cv = resultCM2; const hu = resultHasUnit; clearAll();
+      if (cv !== null) {
+        if (hu) {
+          const r = fromCM2(cv);
+          currentTerm = { km2:r.km2, ha:r.ha, a:r.a, m2:r.m2, cm2:r.cm2 };
+          if (r.neg) currentTerm = { km2:0, ha:0, a:0, m2:0, cm2:cv };
+          hasUnit = true;
+        } else {
+          currentTerm = { km2:0, ha:0, a:0, m2:0, cm2:cv };
+          hasUnit = false;
+        }
+      }
+      showingResult = false;
+    }
+    if (inputDigits || hasUnit || hasAnyValue()) {
+      terms.push(finalize()); operators.push(o); pendingOp = o;
+    } else if (terms.length && pendingOp) {
+      operators[operators.length-1] = o; pendingOp = o;
+    }
+    updateUI();
+  }
+
+  function equals() {
+    if (showingResult) return;
+    if (inputDigits || hasUnit || hasAnyValue()) terms.push(finalize());
+    if (!terms.length) return;
+    pendingOp = null;
+    const res = calc();
+    elExpr.textContent = buildExpr() + ' ＝';
+    if (res.error) { elVal.textContent = res.error; elVal.className = 'current-value error'; resultCM2 = null; resultHasUnit = false; }
+    else {
+      resultCM2 = res.cm2; resultHasUnit = res.hasUnit;
+      if (res.hasUnit) { elVal.textContent = fmtTerm(fromCM2(res.cm2)); }
+      else { elVal.textContent = fmtN(res.cm2) + ' ばい'; }
+      elVal.className = 'current-value result';
+    }
+    showingResult = true;
+    document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('active'));
+  }
+
+  function convert(tu) {
+    let cv = null;
+    if (showingResult && resultCM2 !== null) {
+      if (!resultHasUnit) return;
+      cv = resultCM2;
+    } else if (inputDigits || hasUnit || hasAnyValue()) {
+      const tmp = { ...currentTerm };
+      if (inputDigits) { const n = parseFloat(inputDigits); if (!hasUnit) tmp.cm2 = n; else tmp.cm2 += n; }
+      cv = toCM2(tmp);
+      const sp = [];
+      if (tmp.km2>0) sp.push(fmtN(tmp.km2)+'km²');
+      if (tmp.ha>0) sp.push(fmtN(tmp.ha)+'ha');
+      if (tmp.a>0) sp.push(fmtN(tmp.a)+'a');
+      if (tmp.m2>0) sp.push(fmtN(tmp.m2)+'m²');
+      if (tmp.cm2>0) sp.push(fmtN(tmp.cm2)+'cm²');
+      if (!sp.length) sp.push('0cm²');
+      elExpr.textContent = sp.join('');
+    }
+    if (cv === null) return;
+    const neg = cv < 0, abs = Math.abs(cv);
+    let vv, ul;
+    if (tu==='km2') { vv = abs/10000000000; ul='km²'; }
+    else if (tu==='ha') { vv = abs/100000000; ul='ha'; }
+    else if (tu==='a') { vv = abs/1000000; ul='a'; }
+    else if (tu==='m2') { vv = abs/10000; ul='m²'; }
+    else { vv = abs; ul='cm²'; }
+    elVal.textContent = (neg?'−':'') + fmtN(vv) + ul;
+    elVal.className = 'current-value result';
+    const ce = elExpr.textContent;
+    if (!ce.includes('→')) elExpr.textContent = ce.replace(/ ＝$/,'') + ' → ' + ul + '換算';
+    else elExpr.textContent = ce.replace(/→.*$/,'→ ' + ul + '換算');
+    showingResult = true; resultCM2 = cv;
+  }
+
+  function back() {
+    if (showingResult) { clearAll(); return; }
+    if (inputDigits.length) inputDigits = inputDigits.slice(0,-1);
+    updateUI();
+  }
+
+  function clearAll() {
+    inputDigits=''; currentTerm={km2:0, ha:0, a:0, m2:0, cm2:0}; hasUnit=false;
+    terms=[]; operators=[]; pendingOp=null; showingResult=false; resultCM2=null; resultHasUnit=false;
+    elVal.className='current-value'; updateUI();
+  }
+
+  /* タッチ・クリック両対応のイベント委譲 */
+  const btnContainer = document.querySelector('.buttons');
+  btnContainer.addEventListener('click', e => {
+    const b = e.target.closest('.btn');
+    if (!b) return;
+    if (b.dataset.digit!==undefined) digit(b.dataset.digit);
+    else if (b.dataset.unit) unit(b.dataset.unit);
+    else if (b.dataset.op) op(b.dataset.op);
+    else if (b.dataset.conv) convert(b.dataset.conv);
+    else if (b.dataset.action==='equals') equals();
+    else if (b.dataset.action==='dot') dot();
+    else if (b.dataset.action==='backspace') back();
+    else if (b.dataset.action==='clear') clearAll();
+  });
+
+  /* iOS Safari でボタンをタップしたあと :focus が残るのを防止 */
+  btnContainer.addEventListener('touchend', e => {
+    const b = e.target.closest('.btn');
+    if (b) setTimeout(() => b.blur(), 0);
+  }, { passive: true });
+
+  /* PCのキーボード操作 */
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key;
+    if (k>='0'&&k<='9') { digit(k); e.preventDefault(); }
+    else if (k==='.') { dot(); e.preventDefault(); }
+    else if (k==='+') { op('＋'); e.preventDefault(); }
+    else if (k==='-') { op('−'); e.preventDefault(); }
+    else if (k==='*') { op('×'); e.preventDefault(); }
+    else if (k==='/') { op('÷'); e.preventDefault(); }
+    else if (k==='Enter'||k==='=') { equals(); e.preventDefault(); }
+    else if (k==='Backspace') { back(); e.preventDefault(); }
+    else if (k==='Escape'||k==='c'||k==='C') { clearAll(); e.preventDefault(); }
+  });
+
+  /* iOS でのダブルタップによるズーム抑制（保険） */
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  updateUI();
+})();
+</script>
+</body>
+</html>
