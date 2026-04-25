@@ -490,9 +490,24 @@ body {
   let showingResult = false;
   let resultCM2 = null;
   let resultHasUnit = false;
+  let firstUnit = null;  /* 最初に押された単位を「基準単位」として保持 */
 
   const elExpr = document.getElementById('expression');
   const elVal = document.getElementById('currentValue');
+
+  /* 単位ごとの cm² 換算係数 */
+  function unitFactor(u) {
+    return u==='km2' ? 10000000000 : u==='ha' ? 100000000 : u==='a' ? 1000000 : u==='m2' ? 10000 : 1;
+  }
+  /* 単位の表示ラベル */
+  function unitLabel(u) {
+    return u==='km2' ? 'km²' : u==='ha' ? 'ha' : u==='a' ? 'a' : u==='m2' ? 'm²' : 'cm²';
+  }
+  /* 高精度な小数表示（小さい単位の差まで保持するため最大10桁まで） */
+  function fmtPrecise(n) {
+    if (Number.isInteger(n)) return n.toString();
+    return n.toFixed(10).replace(/0+$/, '').replace(/\.$/, '');
+  }
 
   function toCM2(t) {
     return t.km2 * 10000000000 + t.ha * 100000000 + t.a * 1000000 + t.m2 * 10000 + t.cm2;
@@ -637,6 +652,7 @@ body {
     if (showingResult) clearAll();
     const n = inputDigits ? parseFloat(inputDigits) : 0;
     inputDigits = ''; hasUnit = true;
+    if (firstUnit === null) firstUnit = u;  /* 最初の単位を記憶 */
     if (u==='km2') currentTerm.km2 += n;
     else if (u==='ha') currentTerm.ha += n;
     else if (u==='a') currentTerm.a += n;
@@ -647,13 +663,21 @@ body {
 
   function op(o) {
     if (showingResult) {
-      const cv = resultCM2; const hu = resultHasUnit; clearAll();
+      const cv = resultCM2; const hu = resultHasUnit; const fu = firstUnit;
+      clearAll();
+      firstUnit = fu;  /* 連続計算でも基準単位を保持 */
       if (cv !== null) {
         if (hu) {
-          const r = fromCM2(cv);
-          currentTerm = { km2:r.km2, ha:r.ha, a:r.a, m2:r.m2, cm2:r.cm2 };
-          if (r.neg) currentTerm = { km2:0, ha:0, a:0, m2:0, cm2:cv };
-          hasUnit = true;
+          if (firstUnit && cv >= 0) {
+            /* 基準単位の枠に1つの値として復元（連続計算用） */
+            currentTerm[firstUnit] = cv / unitFactor(firstUnit);
+            hasUnit = true;
+          } else {
+            const r = fromCM2(cv);
+            currentTerm = { km2:r.km2, ha:r.ha, a:r.a, m2:r.m2, cm2:r.cm2 };
+            if (r.neg) currentTerm = { km2:0, ha:0, a:0, m2:0, cm2:cv };
+            hasUnit = true;
+          }
         } else {
           currentTerm = { km2:0, ha:0, a:0, m2:0, cm2:cv };
           hasUnit = false;
@@ -679,7 +703,16 @@ body {
     if (res.error) { elVal.textContent = res.error; elVal.className = 'current-value error'; resultCM2 = null; resultHasUnit = false; }
     else {
       resultCM2 = res.cm2; resultHasUnit = res.hasUnit;
-      if (res.hasUnit) { elVal.textContent = fmtTerm(fromCM2(res.cm2)); }
+      if (res.hasUnit) {
+        if (firstUnit) {
+          /* 基準単位で1つの値として表示 */
+          const neg = res.cm2 < 0;
+          const abs = Math.abs(res.cm2);
+          elVal.textContent = (neg ? '−' : '') + fmtPrecise(abs / unitFactor(firstUnit)) + unitLabel(firstUnit);
+        } else {
+          elVal.textContent = fmtTerm(fromCM2(res.cm2));
+        }
+      }
       else { elVal.textContent = fmtN(res.cm2) + ' ばい'; }
       elVal.className = 'current-value result';
     }
@@ -707,18 +740,13 @@ body {
     }
     if (cv === null) return;
     const neg = cv < 0, abs = Math.abs(cv);
-    let vv, ul;
-    if (tu==='km2') { vv = abs/10000000000; ul='km²'; }
-    else if (tu==='ha') { vv = abs/100000000; ul='ha'; }
-    else if (tu==='a') { vv = abs/1000000; ul='a'; }
-    else if (tu==='m2') { vv = abs/10000; ul='m²'; }
-    else { vv = abs; ul='cm²'; }
-    elVal.textContent = (neg?'−':'') + fmtN(vv) + ul;
+    elVal.textContent = (neg?'−':'') + fmtPrecise(abs / unitFactor(tu)) + unitLabel(tu);
     elVal.className = 'current-value result';
     const ce = elExpr.textContent;
-    if (!ce.includes('→')) elExpr.textContent = ce.replace(/ ＝$/,'') + ' → ' + ul + '換算';
-    else elExpr.textContent = ce.replace(/→.*$/,'→ ' + ul + '換算');
-    showingResult = true; resultCM2 = cv;
+    if (!ce.includes('→')) elExpr.textContent = ce.replace(/ ＝$/,'') + ' → ' + unitLabel(tu) + '換算';
+    else elExpr.textContent = ce.replace(/→.*$/,'→ ' + unitLabel(tu) + '換算');
+    showingResult = true; resultCM2 = cv; resultHasUnit = true;
+    firstUnit = tu;  /* 換算後の単位を新しい基準単位に */
   }
 
   function back() {
@@ -730,6 +758,7 @@ body {
   function clearAll() {
     inputDigits=''; currentTerm={km2:0, ha:0, a:0, m2:0, cm2:0}; hasUnit=false;
     terms=[]; operators=[]; pendingOp=null; showingResult=false; resultCM2=null; resultHasUnit=false;
+    firstUnit=null;
     elVal.className='current-value'; updateUI();
   }
 
